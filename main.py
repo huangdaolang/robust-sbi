@@ -92,12 +92,10 @@ def main(args):
 
 def new_exp(args):
     corrupt = args.corruption
-    degree = args.degree
     distance = args.distance
     beta = args.beta
 
     task_name = "{corruption}_degree={degree}_var=15_{distance}_beta={beta}_theta38".format(corruption=corrupt,
-                                                                               degree=degree,
                                                                                distance=distance,
                                                                                beta=beta,
                                                                                )
@@ -126,14 +124,14 @@ def new_exp(args):
     theta_gt = torch.tensor([3, 8])
     x_o = ricker(theta_gt).to(device)
     sigma = torch.tensor([80])
-    x_o_cont = corruption.magnitude_sigma(x_o, var=sigma).reshape(-1, 100, 100)
+    x_o_cont = corruption.magnitude_sigma(x_o, var=sigma, length=100).reshape(-1, 100, 100)
     # x_o_cont = torch.tensor(np.load("data/x_o_cont.npy"))
     proposal = prior
     for i in range(num_rounds):
         theta, x = simulate_for_sbi(simulator, proposal, num_simulations=num_simulations)
         x = torch.tensor(x).reshape(num_simulations, 100, 100).to(device)
         theta = torch.tensor(theta).to(device)
-        density_estimator_normal, train_losses, summary_losses = inference_normal.append_simulations(theta, x.unsqueeze(1), proposal=proposal).train(corrupt_data_training="mmd", x_obs=x_o_cont)
+        density_estimator_normal = inference_normal.append_simulations(theta, x.unsqueeze(1), proposal=proposal).train(corrupt_data_training="mmd", x_obs=x_o_cont)
 
         prior_new = [Uniform(2 * torch.ones(1), 8 * torch.ones(1)),
                      Uniform(torch.zeros(1), 50 * torch.ones(1))]
@@ -148,10 +146,6 @@ def new_exp(args):
         torch.save(sum_net_normal, root_name_with_seed + "/sum_net_normal_{r}.pkl".format(r=str(i)))
         torch.save(density_estimator_normal, root_name_with_seed + "/density_estimator_normal_{r}.pkl".format(r=str(i)))
 
-        with open(root_name_with_seed + "/train_losses_{r}.pkl".format(r=str(i)), "wb") as fp:  # Pickling
-            pickle.dump(train_losses, fp)
-        with open(root_name_with_seed + "/summary_losses_{r}.pkl".format(r=str(i)), "wb") as fp:  # Pickling
-            pickle.dump(summary_losses, fp)
         # with open(root_name_with_seed + "/inference_normal_{r}.pkl".format(r=str(i)), "wb") as handle:
         #     pickle.dump(inference_normal, handle)
     # with open(root_name_with_seed + "/posterior_robust.pkl", "wb") as handle:
@@ -161,11 +155,11 @@ def new_exp(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--corruption", type=str, default="magnitude_Gaussian")
-    parser.add_argument("--degree", type=float, default=5)
     parser.add_argument("--beta", type=float, default=1)
     # parser.add_argument("--distance", type=str, default="pre_generated_sigma")
     parser.add_argument("--seed", type=int, default="0")
     parser.add_argument("--distance", type=str, default="obs_minimize")
+    parser.add_argument("--simulator", type=str, default="ricker")
 
     args = parser.parse_args()
     new_exp(args)

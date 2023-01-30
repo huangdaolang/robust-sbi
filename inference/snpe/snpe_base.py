@@ -390,6 +390,7 @@ class PosteriorEstimator(NeuralInference, ABC):
 
                     summary_loss = MMD_unweighted(embedding_context, embedding_context_cont, lengthscale=median_heuristic(embedding_context))
                     t_loss = torch.mean(train_losses)
+                    print(summary_loss)
                     train_loss = t_loss + beta * summary_loss
                 elif corrupt_data_training == "direct_training":
                     if corruption_method == "sparsity":
