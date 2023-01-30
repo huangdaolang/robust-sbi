@@ -319,8 +319,7 @@ class PosteriorEstimator(NeuralInference, ABC):
                 list(self._neural_net.parameters()), lr=learning_rate
             )
             self.epoch, self._val_log_prob = 0, float("-Inf")
-        t_losses = []
-        s_losses = []
+
         while self.epoch <= max_num_epochs and not self._converged(
             self.epoch, stop_after_epochs
         ):
@@ -456,10 +455,7 @@ class PosteriorEstimator(NeuralInference, ABC):
                         self._neural_net.parameters(), max_norm=clip_max_norm
                     )
                 self.optimizer.step()
-            t_losses.append(t_loss.item())
-            s_losses.append(summary_loss.item())
-            print("t", t_loss.item())
-            print("s", summary_loss.item())
+
             self.epoch += 1
 
             train_log_prob_average = train_log_probs_sum / (
@@ -516,7 +512,7 @@ class PosteriorEstimator(NeuralInference, ABC):
         # cause memory leakage when benchmarking.
         self._neural_net.zero_grad(set_to_none=True)
 
-        return deepcopy(self._neural_net), t_losses, s_losses
+        return deepcopy(self._neural_net)
 
     def build_posterior(
         self,
