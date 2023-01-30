@@ -1,0 +1,5 @@
+from inference.posteriors.direct_posterior import DirectPosterior
+from inference.posteriors.importance_posterior import ImportanceSamplingPosterior
+from inference.posteriors.mcmc_posterior import MCMCPosterior
+from inference.posteriors.rejection_posterior import RejectionPosterior
+from inference.posteriors.vi_posterior import VIPosterior
