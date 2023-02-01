@@ -1,6 +1,7 @@
 # This file is part of sbi, a toolkit for simulation-based inference. sbi is licensed
 # under the Affero General Public License v3, see <https://www.gnu.org/licenses/>.
 import time
+import random
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import Any, Callable, Dict, Optional, Union
@@ -85,10 +86,8 @@ class PosteriorEstimator(NeuralInference, ABC):
 
         self._proposal_roundwise = []
         self.use_non_atomic_loss = False
-        self.theta_gt = torch.tensor([4., 10.])
-        # x_o = ricker(self.theta_gt)
-        # sigma = torch.tensor([5])
-        # self.x_o_cont = corruption.magnitude_sigma(x_o, var=sigma).reshape(-1, 100, 100)
+
+        self.theta_gt = torch.tensor([4., 10.]).to(device)
 
     def append_simulations(
         self,
@@ -378,7 +377,10 @@ class PosteriorEstimator(NeuralInference, ABC):
                         force_first_round_loss=True,
                     )
                     theta, x, _ = self.get_simulations(starting_round=0)
-
+                    index_list = [int(i) for i in range(len(theta))]
+                    random.shuffle(index_list)
+                    theta = theta[:200]
+                    x = x[:200]
                     _, embedding_context, _ = self._loss(
                         theta,
                         x,
@@ -390,7 +392,7 @@ class PosteriorEstimator(NeuralInference, ABC):
 
                     summary_loss = MMD_unweighted(embedding_context, embedding_context_cont, lengthscale=median_heuristic(embedding_context))
                     t_loss = torch.mean(train_losses)
-                    print(summary_loss)
+                    # print(summary_loss)
                     train_loss = t_loss + beta * summary_loss
                 elif corrupt_data_training == "direct_training":
                     if corruption_method == "sparsity":

@@ -21,17 +21,18 @@ def main(args):
     num_simulations = args.num_simulations
     theta_gt = args.theta
 
-    task_name = "var={var}_{distance}_beta={beta}_theta={theta}/{seed}".format(var=var,
+    task_name = "var={var}_{distance}_beta={beta}_theta={theta}_num={nums}/{seed}".format(var=var,
                                                                                distance=distance,
                                                                                beta=beta,
                                                                                theta=theta_gt,
-                                                                               seed=str(args.seed))
+                                                                               seed=str(args.seed),
+                                                                               nums=num_simulations)
     root_name = 'objects/oup/' + str(task_name)
     if not os.path.exists(root_name):
         os.makedirs(root_name)
 
-    prior = [Uniform(torch.zeros(1), torch.ones(1)),
-             Uniform(-2 * torch.zeros(1), 2 * torch.ones(1))]
+    prior = [Uniform(torch.zeros(1).to(device), torch.ones(1).to(device)),
+             Uniform(-2 * torch.zeros(1).to(device), 2 * torch.ones(1).to(device))]
     simulator, prior = prepare_for_sbi(oup, prior)
 
     sum_net = OUPSummary(input_size=1, hidden_dim=64).to(device)
@@ -49,6 +50,8 @@ def main(args):
     obs_cont = corruption.magnitude_sigma(obs, var=sigma, length=50).reshape(-1, 100, 50)
 
     theta, x = simulate_for_sbi(simulator, prior, num_simulations=num_simulations)
+    # theta = torch.tensor(np.load("data/oup_theta_4000.npy"))
+    # x = torch.tensor(np.load("data/oup_x_4000.npy"))
     x = x.reshape(num_simulations, 100, 50).to(device)
     theta = theta.to(device)
     density_estimator = inference.append_simulations(theta, x.unsqueeze(1)).train(
@@ -71,7 +74,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--beta", type=float, default=1.0)
+    parser.add_argument("--beta", type=float, default=2.0)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--distance", type=str, default="mmd")
     parser.add_argument("--num_simulations", type=int, default=4000)
