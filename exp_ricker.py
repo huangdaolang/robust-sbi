@@ -154,12 +154,11 @@ def new_exp(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--corruption", type=str, default="magnitude_Gaussian")
     parser.add_argument("--beta", type=float, default=1)
-    # parser.add_argument("--distance", type=str, default="pre_generated_sigma")
     parser.add_argument("--seed", type=int, default="0")
-    parser.add_argument("--distance", type=str, default="obs_minimize")
-    parser.add_argument("--simulator", type=str, default="ricker")
-
+    parser.add_argument("--distance", type=str, default="mmd")
+    parser.add_argument("--num_simulations", type=int, default=4000)
+    parser.add_argument("--var", type=float, default=100)
+    parser.add_argument("--theta", type=list, default=[4, 10])
     args = parser.parse_args()
     new_exp(args)
