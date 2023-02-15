@@ -30,10 +30,10 @@ def magnitude(obs, degree=0.2, var=15):
     return obs_cont
 
 
-def magnitude_sigma(obs, var=15, length=100):
+def magnitude_sigma(obs, var=15, length=100, N=100):
     obs_cont = torch.clone(obs).to(obs.device)
 
-    obs_cont += torch.abs(torch.randn(100, length).to(obs.device) * var)
+    obs_cont += torch.abs(torch.randn(N, length).to(obs.device) * var)
 
     # obs_cont = torch.tensor(obs_cont)
     return obs_cont

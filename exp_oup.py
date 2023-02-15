@@ -1,3 +1,5 @@
+import torch
+
 from simulators.oup import oup
 
 from networks.summary_nets import OUPSummary
@@ -31,11 +33,11 @@ def main(args):
     if not os.path.exists(root_name):
         os.makedirs(root_name)
 
-    prior = [Uniform(torch.zeros(1).to(device), torch.ones(1).to(device)),
-             Uniform(-2 * torch.zeros(1).to(device), 2 * torch.ones(1).to(device))]
+    prior = [Uniform(- torch.ones(1).to(device), 2 * torch.ones(1).to(device)),
+             Uniform(-2 * torch.ones(1).to(device), 2 * torch.ones(1).to(device))]
     simulator, prior = prepare_for_sbi(oup, prior)
 
-    sum_net = OUPSummary(input_size=1, hidden_dim=64).to(device)
+    sum_net = OUPSummary(input_size=1, hidden_dim=2).to(device)
     neural_posterior = posterior_nn(
         model="maf",
         embedding_net=sum_net,
@@ -45,19 +47,22 @@ def main(args):
     inference = SNPE(prior=prior, density_estimator=neural_posterior, device=str(device))
 
     theta_gt = torch.tensor(theta_gt)
-    obs = oup(theta_gt).to(device)
-    sigma = torch.tensor(var)
-    obs_cont = corruption.magnitude_sigma(obs, var=sigma, length=50).reshape(-1, 100, 50)
+    theta_cont = torch.Tensor([-0.5, 1])
+    obs = oup(theta_gt, var=var).to(device)
+    obs_2 = oup(theta_cont, var=1).to(device)
+    obs_cont = torch.cat([obs[:16], obs_2[:4]], dim=0).reshape(-1, 20, 25)
+    # sigma = torch.tensor(var)
+    # obs_cont = corruption.magnitude_sigma(obs, var=sigma, length=25, N=20).reshape(-1, 20, 25)
 
     theta, x = simulate_for_sbi(simulator, prior, num_simulations=num_simulations)
     # theta = torch.tensor(np.load("data/oup_theta_4000.npy"))
     # x = torch.tensor(np.load("data/oup_x_4000.npy"))
-    x = x.reshape(num_simulations, 100, 50).to(device)
+    x = x.reshape(num_simulations, 20, 25).to(device)
     theta = theta.to(device)
     density_estimator = inference.append_simulations(theta, x.unsqueeze(1)).train(
         corrupt_data_training=distance, x_obs=obs_cont)
 
-    prior_new = [Uniform(-1 * torch.ones(1), 2 * torch.ones(1)),
+    prior_new = [Uniform(-1 * torch.ones(1), 4 * torch.ones(1)),
                  Uniform(-4 * torch.zeros(1), 4 * torch.ones(1))]
     simulator, prior_new = prepare_for_sbi(oup, prior_new)
     posterior = inference.build_posterior(density_estimator, prior=prior_new)
@@ -68,8 +73,8 @@ def main(args):
     torch.save(sum_net, root_name + "/sum_net.pkl")
     torch.save(density_estimator, root_name + "/density_estimator.pkl")
 
-    with open(root_name + "/inference.pkl", "wb") as handle:
-        pickle.dump(inference, handle)
+    # with open(root_name + "/inference.pkl", "wb") as handle:
+    #     pickle.dump(inference, handle)
 
 
 if __name__ == "__main__":
@@ -77,8 +82,8 @@ if __name__ == "__main__":
     parser.add_argument("--beta", type=float, default=2.0)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--distance", type=str, default="mmd")
-    parser.add_argument("--num_simulations", type=int, default=4000)
-    parser.add_argument("--var", type=int, default=20)
+    parser.add_argument("--num_simulations", type=int, default=500)
+    parser.add_argument("--var", type=float, default=0.5)
     parser.add_argument("--theta", type=list, default=[0.5, 1.0])
     args = parser.parse_args()
     main(args)
