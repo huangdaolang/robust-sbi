@@ -53,9 +53,9 @@ class LotkaSummary(nn.Module):
 
 
 class OUPSummary(nn.Module):
-    def __init__(self, input_size, hidden_dim):
+    def __init__(self, input_size, hidden_dim, N):
         super(OUPSummary, self).__init__()
-
+        self.N = N
         self.hidden_dim = hidden_dim
         self.input_size = input_size
         self.num_layers = 1
@@ -69,13 +69,13 @@ class OUPSummary(nn.Module):
     def forward(self, Y):
         current_device = Y.device
         batch_size = Y.size(0)
-        embeddings_conv = self.conv(Y.reshape(-1, 1, 25)).reshape(-1, 20, 2)
+        embeddings_conv = self.conv(Y.reshape(-1, 1, 25)).reshape(-1, self.N, 2)
         stat_conv = torch.mean(embeddings_conv, dim=1)
 
-        hidden, c = self.init_hidden(20 * batch_size, current_device)
-        out, (embeddings_lstm, c) = self.lstm(Y.reshape(20 * batch_size, 25, 1), (hidden, c))
+        hidden, c = self.init_hidden(self.N * batch_size, current_device)
+        out, (embeddings_lstm, c) = self.lstm(Y.reshape(self.N * batch_size, 25, 1), (hidden, c))
 
-        embeddings_lstm = embeddings_lstm.reshape(batch_size, 20, self.hidden_dim)
+        embeddings_lstm = embeddings_lstm.reshape(batch_size, self.N, self.hidden_dim)
 
         stat_lstm = torch.mean(embeddings_lstm, dim=1)
         stat = torch.cat([stat_conv, stat_lstm], dim=1)

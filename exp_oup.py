@@ -22,22 +22,28 @@ def main(args):
     beta = args.beta
     num_simulations = args.num_simulations
     theta_gt = args.theta
+    N = args.N
+    degree = args.degree
+    n_corrupted = int(N * degree)
+    n_normal = int(N - n_corrupted)
 
-    task_name = "var={var}_{distance}_beta={beta}_theta={theta}_num={nums}/{seed}".format(var=var,
+    task_name = "degree={degree}_var={var}_{distance}_beta={beta}_theta={theta}_num={nums}_N={N}/{seed}".format(var=var,
                                                                                distance=distance,
                                                                                beta=beta,
                                                                                theta=theta_gt,
                                                                                seed=str(args.seed),
-                                                                               nums=num_simulations)
+                                                                               nums=num_simulations,
+                                                                               N=N,
+                                                                               degree=degree)
     root_name = 'objects/oup/' + str(task_name)
     if not os.path.exists(root_name):
         os.makedirs(root_name)
 
     prior = [Uniform(- torch.ones(1).to(device), 2 * torch.ones(1).to(device)),
              Uniform(-2 * torch.ones(1).to(device), 2 * torch.ones(1).to(device))]
-    simulator, prior = prepare_for_sbi(oup, prior)
+    simulator, prior = prepare_for_sbi(oup(N=N), prior)
 
-    sum_net = OUPSummary(input_size=1, hidden_dim=2).to(device)
+    sum_net = OUPSummary(input_size=1, hidden_dim=2, N=N).to(device)
     neural_posterior = posterior_nn(
         model="maf",
         embedding_net=sum_net,
@@ -48,16 +54,15 @@ def main(args):
 
     theta_gt = torch.tensor(theta_gt)
     theta_cont = torch.Tensor([-0.5, 1])
-    obs = oup(theta_gt, var=var).to(device)
-    obs_2 = oup(theta_cont, var=1).to(device)
-    obs_cont = torch.cat([obs[:16], obs_2[:4]], dim=0).reshape(-1, 20, 25)
-    # sigma = torch.tensor(var)
-    # obs_cont = corruption.magnitude_sigma(obs, var=sigma, length=25, N=20).reshape(-1, 20, 25)
+    oup_obs = oup(var=var, N=N)
+    obs = oup_obs(theta_gt).to(device)
+    oup_obs_cont = oup(var=1, N=N)
+    obs_2 = oup_obs_cont(theta_cont).to(device)
+    obs_cont = torch.cat([obs[:n_normal], obs_2[:n_corrupted]], dim=0).reshape(-1, N, 25)
 
     theta, x = simulate_for_sbi(simulator, prior, num_simulations=num_simulations)
-    # theta = torch.tensor(np.load("data/oup_theta_4000.npy"))
-    # x = torch.tensor(np.load("data/oup_x_4000.npy"))
-    x = x.reshape(num_simulations, 20, 25).to(device)
+
+    x = x.reshape(num_simulations, N, 25).to(device)
     theta = theta.to(device)
     density_estimator = inference.append_simulations(theta, x.unsqueeze(1)).train(
         corrupt_data_training=distance, x_obs=obs_cont)
@@ -79,11 +84,13 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--degree", type=float, default=0.2)
     parser.add_argument("--beta", type=float, default=2.0)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--distance", type=str, default="mmd")
-    parser.add_argument("--num_simulations", type=int, default=500)
-    parser.add_argument("--var", type=float, default=0.5)
+    parser.add_argument("--num_simulations", type=int, default=1000)
+    parser.add_argument("--var", type=float, default=1)
     parser.add_argument("--theta", type=list, default=[0.5, 1.0])
+    parser.add_argument("--N", type=int, default=100)
     args = parser.parse_args()
     main(args)
