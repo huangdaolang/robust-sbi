@@ -39,9 +39,9 @@ def main(args):
     if not os.path.exists(root_name):
         os.makedirs(root_name)
 
-    prior = [Uniform(- torch.ones(1).to(device), 2 * torch.ones(1).to(device)),
+    prior = [Uniform(torch.zeros(1).to(device), 2 * torch.ones(1).to(device)),
              Uniform(-2 * torch.ones(1).to(device), 2 * torch.ones(1).to(device))]
-    simulator, prior = prepare_for_sbi(oup(N=N), prior)
+    simulator, prior = prepare_for_sbi(oup(N=N, var=var), prior)
 
     sum_net = OUPSummary(input_size=1, hidden_dim=2, N=N).to(device)
     neural_posterior = posterior_nn(
@@ -68,8 +68,8 @@ def main(args):
         corrupt_data_training=distance, x_obs=obs_cont)
 
     prior_new = [Uniform(-1 * torch.ones(1), 4 * torch.ones(1)),
-                 Uniform(-4 * torch.zeros(1), 4 * torch.ones(1))]
-    simulator, prior_new = prepare_for_sbi(oup, prior_new)
+                 Uniform(-6 * torch.ones(1), 6 * torch.ones(1))]
+    simulator, prior_new = prepare_for_sbi(oup(N=N, var=var), prior_new)
     posterior = inference.build_posterior(density_estimator, prior=prior_new)
 
     with open(root_name + "/posterior.pkl", "wb") as handle:
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     parser.add_argument("--beta", type=float, default=2.0)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--distance", type=str, default="mmd")
-    parser.add_argument("--num_simulations", type=int, default=1000)
+    parser.add_argument("--num_simulations", type=int, default=2000)
     parser.add_argument("--var", type=float, default=1)
     parser.add_argument("--theta", type=list, default=[0.5, 1.0])
     parser.add_argument("--N", type=int, default=100)
