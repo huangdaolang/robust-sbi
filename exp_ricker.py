@@ -51,9 +51,9 @@ def main(args):
     # sigma = torch.tensor(var)
     # obs_cont = corruption.magnitude_sigma(obs, var=sigma, length=100).reshape(-1, 100, 100)
     # prior mismatch
-    obs_cont = ricker(torch.tensor([5, 25])).reshape(-1, 100, 100).to(device)
+    # obs_cont = ricker(torch.tensor([5, 20])).reshape(-1, 100, 100).to(device)
 
-    # x_o_cont = torch.tensor(np.load("data/x_o_cont.npy"))
+    obs_cont = torch.tensor(np.load("data/obs_prior_mismatch.npy")).reshape(-1, 100, 100).to(device)
 
     theta, x = simulate_for_sbi(simulator, prior, num_simulations=num_simulations)
 
