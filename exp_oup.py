@@ -65,10 +65,10 @@ def main(args):
     x = x.reshape(num_simulations, N, 25).to(device)
     theta = theta.to(device)
     density_estimator = inference.append_simulations(theta, x.unsqueeze(1)).train(
-        corrupt_data_training=distance, x_obs=obs_cont)
+        corrupt_data_training=distance, x_obs=obs_cont, beta=beta)
 
-    prior_new = [Uniform(-1 * torch.ones(1), 4 * torch.ones(1)),
-                 Uniform(-6 * torch.ones(1), 6 * torch.ones(1))]
+    prior_new = [Uniform(-10 * torch.ones(1), 10 * torch.ones(1)),
+                 Uniform(-10 * torch.ones(1), 10 * torch.ones(1))]
     simulator, prior_new = prepare_for_sbi(oup(N=N, var=var), prior_new)
     posterior = inference.build_posterior(density_estimator, prior=prior_new)
 
@@ -84,11 +84,11 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--degree", type=float, default=0.2)
-    parser.add_argument("--beta", type=float, default=2.0)
+    parser.add_argument("--degree", type=float, default=0)
+    parser.add_argument("--beta", type=float, default=1.0)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--distance", type=str, default="mmd")
-    parser.add_argument("--num_simulations", type=int, default=2000)
+    parser.add_argument("--num_simulations", type=int, default=1000)
     parser.add_argument("--var", type=float, default=1)
     parser.add_argument("--theta", type=list, default=[0.5, 1.0])
     parser.add_argument("--N", type=int, default=100)

@@ -31,10 +31,11 @@ def main(args):
     if not os.path.exists(root_name):
         os.makedirs(root_name)
 
-    # prior = [Uniform(2 * torch.ones(1), 8 * torch.ones(1)),
-    #          Uniform(torch.zeros(1), 20 * torch.ones(1))]
     prior = [Uniform(2 * torch.ones(1), 8 * torch.ones(1)),
-             torch.distributions.log_normal.LogNormal(loc=torch.tensor([0.5]), scale=torch.tensor([1]))]
+             Uniform(torch.zeros(1), 20 * torch.ones(1))]
+    # mismatched prior
+    # prior = [Uniform(2 * torch.ones(1), 8 * torch.ones(1)),
+    #          torch.distributions.log_normal.LogNormal(loc=torch.tensor([0.5]), scale=torch.tensor([1]))]
     simulator, prior = prepare_for_sbi(ricker, prior)
 
     sum_net = RickerSummary(input_size=1, hidden_dim=4).to(device)
@@ -48,18 +49,18 @@ def main(args):
 
     theta_gt = torch.tensor(theta_gt)
     obs = ricker(theta_gt).to(device)
-    # sigma = torch.tensor(var)
-    # obs_cont = corruption.magnitude_sigma(obs, var=sigma, length=100).reshape(-1, 100, 100)
+    sigma = torch.tensor(var)
+    obs_cont = corruption.magnitude_sigma(obs, var=sigma, length=100).reshape(-1, 100, 100)
     # prior mismatch
     # obs_cont = ricker(torch.tensor([5, 20])).reshape(-1, 100, 100).to(device)
 
-    obs_cont = torch.tensor(np.load("data/obs_prior_mismatch.npy")).reshape(-1, 100, 100).to(device)
+    # obs_cont = torch.tensor(np.load("data/obs_prior_mismatch.npy")).reshape(-1, 100, 100).to(device)
 
     theta, x = simulate_for_sbi(simulator, prior, num_simulations=num_simulations)
 
     x = x.reshape(num_simulations, 100, 100).to(device)
     theta = theta.to(device)
-    density_estimator = inference.append_simulations(theta, x.unsqueeze(1)).train(corrupt_data_training="mmd", x_obs=obs_cont)
+    density_estimator = inference.append_simulations(theta, x.unsqueeze(1)).train(corrupt_data_training=distance, x_obs=obs_cont, beta=beta)
 
     prior_new = [Uniform(2 * torch.ones(1), 8 * torch.ones(1)),
                  Uniform(torch.zeros(1), 50 * torch.ones(1))]
@@ -78,10 +79,10 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--beta", type=float, default=1)
+    parser.add_argument("--beta", type=float, default=100)
     parser.add_argument("--seed", type=int, default="0")
-    parser.add_argument("--distance", type=str, default="none")
-    parser.add_argument("--num_simulations", type=int, default=50)
+    parser.add_argument("--distance", type=str, default="mmd")
+    parser.add_argument("--num_simulations", type=int, default=1000)
     parser.add_argument("--var", type=float, default=100)
     parser.add_argument("--theta", type=list, default=[4, 10])
     args = parser.parse_args()
