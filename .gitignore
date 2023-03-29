@@ -8,5 +8,7 @@
 
 data/*.npy
 
+data/*.mat
+
 objects/*
 
