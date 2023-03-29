@@ -368,15 +368,18 @@ class PosteriorEstimator(NeuralInference, ABC):
                     summary_loss = torch.nn.functional.pairwise_distance(embedding_context_cont, embedding_context, p=2)
                     train_loss = torch.mean(train_losses) + beta * torch.mean(summary_loss)
                 elif corrupt_data_training == "mmd":
+                    theta, x, _ = self.get_simulations(starting_round=0)
+                    theta_dim = theta[0].shape[0]
+
                     _, embedding_context_cont, embedding_context_cont_hidden = self._loss(
-                        self.theta_gt.reshape(-1, 2),
+                        theta[0].reshape(-1, theta_dim),
                         x_obs,
                         masks_batch,
                         proposal,
                         calibration_kernel,
                         force_first_round_loss=True,
                     )
-                    theta, x, _ = self.get_simulations(starting_round=0)
+
                     index_list = [int(i) for i in range(len(theta))]
                     random.shuffle(index_list)
                     theta = theta[:200]

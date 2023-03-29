@@ -1,7 +1,9 @@
 import torch
+import numpy as np
+
 
 class turin():
-    def __init__(self, B=4e9, Ns=801, N=100, tau0=0):
+    def __init__(self, B=4e9, Ns=801, N=100, tau0=6e-9):
         self.B = B
         self.Ns = Ns
         self.N = N
@@ -10,15 +12,15 @@ class turin():
     def __call__(self, theta, *args, **kwargs):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if len(theta.shape) == 1:
-            G0 = theta[0]
-            T = theta[1]
-            lambda_0 = theta[2]
-            sigma2_N = theta[3]
+            G0 = theta[0].to(device)
+            T = theta[1].to(device)
+            lambda_0 = theta[2].to(device)
+            sigma2_N = theta[3].to(device)
         else:
-            G0 = theta[0, 0]
-            T = theta[0, 1]
-            lambda_0 = theta[0, 2]
-            sigma2_N = theta[0, 3]
+            G0 = theta[0, 0].to(device)
+            T = theta[0, 1].to(device)
+            lambda_0 = theta[0, 2].to(device)
+            sigma2_N = theta[0, 3].to(device)
 
         sigma2_N = sigma2_N
 
@@ -37,22 +39,26 @@ class turin():
 
             n_points = int(torch.poisson(mu_poisson))  # Number of delay points sampled from Poisson process
 
-            delays = torch.rand(n_points) * t_max  # Delays sampled from a 1-dimensional Poisson point process
+            delays = (torch.rand(n_points) * t_max).to(device)  # Delays sampled from a 1-dimensional Poisson point process
 
             delays = torch.sort(delays)[0]
 
             alpha = torch.zeros(n_points,
-                                dtype=torch.cfloat)  # Initialising vector of gains of length equal to the number of delay points
+                                dtype=torch.cfloat).to(device)  # Initialising vector of gains of length equal to the number of delay points
 
             sigma2 = G0 * torch.exp(-delays / T) / lambda_0 * self.B
 
             for l in range(n_points):
-                alpha[l] = torch.normal(0, torch.sqrt(sigma2[l] / 2)) + torch.normal(0, torch.sqrt(sigma2[l] / 2)) * 1j
+                if delays[l] < self.tau0:
+                    alpha[l] = 0
+                else:
+                    alpha[l] = torch.normal(0, torch.sqrt(sigma2[l] / 2)) + torch.normal(0,
+                                                                                         torch.sqrt(sigma2[l] / 2)) * 1j
 
             H[jR, :] = torch.matmul(torch.exp(-1j * 2 * torch.pi * delta_f * (torch.ger(torch.arange(self.Ns), delays))), alpha)
 
         # Noise power by setting SNR
-        Noise = torch.zeros((nRx, self.Ns), dtype=torch.cfloat)
+        Noise = torch.zeros((nRx, self.Ns), dtype=torch.cfloat).to(device)
 
         for j in range(nRx):
             normal = torch.distributions.normal.Normal(0, torch.sqrt(sigma2_N / 2))
@@ -62,8 +68,8 @@ class turin():
 
         Y = H + Noise
 
-        y = torch.zeros(Y.shape, dtype=torch.cfloat)
-        p = torch.zeros(Y.shape)
+        y = torch.zeros(Y.shape, dtype=torch.cfloat).to(device)
+        p = torch.zeros(Y.shape).to(device)
         lens = len(Y[:, 0])
 
         for i in range(lens):
@@ -72,3 +78,50 @@ class turin():
             p[i, :] = torch.abs(y[i, :]) ** 2
 
         return 10 * torch.log10(p)
+
+
+# Numpy implementation
+def TurinModel(G0, T, lambda_0, sigma2_N, B=4e9, Ns=801, N=100, tau0=0):
+
+    nRx = N
+
+    delta_f = B / (Ns - 1)  # Frequency step size
+    t_max = 1 / delta_f
+
+    tau = np.linspace(0, t_max, Ns)
+
+    H = np.zeros((nRx, Ns), dtype=complex)
+
+    mu_poisson = lambda_0 * t_max  # Mean of Poisson process
+
+    for jR in range(nRx):
+
+        n_points = np.random.poisson(mu_poisson)  # Number of delay points sampled from Poisson process
+
+        delays = np.random.uniform(0, t_max, n_points)  # Delays sampled from a 1-dimensional Poisson point process
+
+        delays = np.sort(delays)
+
+        alpha = np.zeros(n_points,
+                         dtype=complex)  # Initialising vector of gains of length equal to the number of delay points
+
+        sigma2 = G0 * np.exp(-delays / T) / lambda_0 * B
+
+        for l in range(n_points):
+            alpha[l] = np.random.normal(0, np.sqrt(sigma2[l] / 2)) + np.random.normal(0,
+                                                                                      np.sqrt(sigma2[l] / 2)) * 1j
+
+        H[jR, :] = np.exp(-1j * 2 * np.pi * delta_f * (np.outer(np.arange(Ns), delays))) @ alpha
+
+    # Noise power by setting SNR
+    Noise = np.zeros((nRx, Ns), dtype=complex)
+
+    for j in range(nRx):
+        Noise[j, :] = np.random.normal(0, np.sqrt(sigma2_N / 2), Ns) + np.random.normal(0, np.sqrt(sigma2_N / 2),
+                                                                                        Ns) * 1j
+
+    # Received signal in frequency domain
+
+    Y = H + Noise
+
+    return Y

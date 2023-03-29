@@ -101,26 +101,26 @@ class TurinSummary(nn.Module):
                                   nn.Conv1d(8, 16, 3, 3),
                                   nn.Conv1d(16, 32, 3, 3),
                                   nn.Conv1d(32, 64, 3, 3),
-                                  nn.Conv1d(64, 4, 3, 3),
+                                  nn.Conv1d(64, 8, 3, 3),
                                   nn.AvgPool1d(2))
 
     def forward(self, Y):
         current_device = Y.device
         batch_size = Y.size(0)
 
-        embeddings_conv = self.conv(Y.reshape(-1, 1, 801)).reshape(-1, self.N, 4)
+        embeddings_conv = self.conv(Y.reshape(-1, 1, 801)).reshape(-1, self.N, 8)
 
         stat_conv = torch.mean(embeddings_conv, dim=1)
 
-        hidden, c = self.init_hidden(self.N * batch_size, current_device)
-        out, (embeddings_lstm, c) = self.lstm(Y.reshape(self.N * batch_size, 801, 1), (hidden, c))
+        # hidden, c = self.init_hidden(self.N * batch_size, current_device)
+        # out, (embeddings_lstm, c) = self.lstm(Y.reshape(self.N * batch_size, 801, 1), (hidden, c))
+        #
+        # embeddings_lstm = embeddings_lstm.reshape(batch_size, self.N, self.hidden_dim)
+        #
+        # stat_lstm = torch.mean(embeddings_lstm, dim=1)
+        # stat = torch.cat([stat_conv, stat_lstm], dim=1)
 
-        embeddings_lstm = embeddings_lstm.reshape(batch_size, self.N, self.hidden_dim)
-
-        stat_lstm = torch.mean(embeddings_lstm, dim=1)
-        stat = torch.cat([stat_conv, stat_lstm], dim=1)
-
-        return embeddings_lstm, stat
+        return embeddings_conv, stat_conv
 
     def init_hidden(self, batch_size, current_device):
         hidden = torch.zeros(1 * self.num_layers, batch_size, self.hidden_dim).to(current_device)

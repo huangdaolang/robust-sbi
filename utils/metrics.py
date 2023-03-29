@@ -304,7 +304,7 @@ def MMD_unweighted(x, y, lengthscale):
     kxy = K[0:m, m:(m + n)]
 
     return (1 / m ** 2) * torch.sum(kxx) - (2 / (m * n)) * torch.sum(kxy) + (1 / n ** 2) * torch.sum(kyy)
-
+    # return (1 / m ** 2) * torch.sum(kxx) - (2 / (m * n)) * torch.sum(kxy)
 
 def median_heuristic(y):
     a = torch.cdist(y, y)**2
