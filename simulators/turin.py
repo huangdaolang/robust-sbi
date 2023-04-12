@@ -3,7 +3,7 @@ import numpy as np
 
 
 class turin():
-    def __init__(self, B=4e9, Ns=801, N=100, tau0=6e-9):
+    def __init__(self, B=4e9, Ns=801, N=100, tau0=0):
         self.B = B
         self.Ns = Ns
         self.N = N

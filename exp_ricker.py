@@ -21,7 +21,7 @@ def main(args):
     num_simulations = args.num_simulations
     theta_gt = args.theta
 
-    task_name = "var={var}_{distance}_beta={beta}_theta={theta}_num={nums}/{seed}".format(var=var,
+    task_name = "mix_var={var}_{distance}_beta={beta}_theta={theta}_num={nums}/{seed}".format(var=var,
                                                                                           distance=distance,
                                                                                           beta=beta,
                                                                                           theta=theta_gt,
@@ -47,10 +47,11 @@ def main(args):
 
     inference = SNPE(prior=prior, density_estimator=neural_posterior, device=str(device))
 
-    theta_gt = torch.tensor(theta_gt)
-    obs = ricker(theta_gt).to(device)
-    sigma = torch.tensor(var)
-    obs_cont = corruption.magnitude_sigma(obs, var=sigma, length=100).reshape(-1, 100, 100)
+    # theta_gt = torch.tensor(theta_gt)
+    # obs = ricker(theta_gt).to(device)
+    # sigma = torch.tensor(var)
+    # obs_cont = corruption.magnitude_sigma(obs, var=sigma, length=100).reshape(-1, 100, 100)
+    obs_cont = torch.tensor(np.load(f"data/ricker_obs_{int(var)}.npy"))
     # prior mismatch
     # obs_cont = ricker(torch.tensor([5, 20])).reshape(-1, 100, 100).to(device)
 
@@ -83,7 +84,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default="0")
     parser.add_argument("--distance", type=str, default="mmd")
     parser.add_argument("--num_simulations", type=int, default=1000)
-    parser.add_argument("--var", type=float, default=100)
+    parser.add_argument("--var", type=float, default=0)
     parser.add_argument("--theta", type=list, default=[4, 10])
     args = parser.parse_args()
     main(args)

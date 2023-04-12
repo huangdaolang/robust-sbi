@@ -126,3 +126,27 @@ class TurinSummary(nn.Module):
         hidden = torch.zeros(1 * self.num_layers, batch_size, self.hidden_dim).to(current_device)
         c = torch.zeros(1 * self.num_layers, batch_size, self.hidden_dim).to(current_device)
         return hidden, c
+
+
+class TurinSummarySmall(nn.Module):
+    def __init__(self, input_size, hidden_dim, N):
+        super().__init__()
+        self.N = N
+        self.hidden_dim = hidden_dim
+        self.input_size = input_size
+        self.shared_fc1 = nn.Linear(self.input_size, self.hidden_dim)
+        self.shared_fc2 = nn.Linear(self.hidden_dim, 20)
+        self.fc1 = nn.Linear(20, 20)
+        self.fc2 = nn.Linear(20, 8)
+        self.non_linear = nn.ReLU()
+
+    def forward(self, x):
+        t = x.shape[0]
+        x = self.shared_fc1(x.reshape(-1, 4))
+        x = self.non_linear(x)
+        x = self.shared_fc2(x).reshape(t, self.N, 20)
+        embed = torch.sum(x, dim=1) / t
+        x = self.fc1(embed)
+        x = self.non_linear(x)
+        x = self.fc2(x)
+        return embed, x

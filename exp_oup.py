@@ -52,13 +52,14 @@ def main(args):
 
     inference = SNPE(prior=prior, density_estimator=neural_posterior, device=str(device))
 
-    theta_gt = torch.tensor(theta_gt)
-    theta_cont = torch.Tensor([-0.5, 1])
-    oup_obs = oup(var=var, N=N)
-    obs = oup_obs(theta_gt).to(device)
-    oup_obs_cont = oup(var=1, N=N)
-    obs_2 = oup_obs_cont(theta_cont).to(device)
-    obs_cont = torch.cat([obs[:n_normal], obs_2[:n_corrupted]], dim=0).reshape(-1, N, 25)
+    # theta_gt = torch.tensor(theta_gt)
+    # theta_cont = torch.Tensor([-0.5, 1])
+    # oup_obs = oup(var=var, N=N)
+    # obs = oup_obs(theta_gt).to(device)
+    # oup_obs_cont = oup(var=1, N=N)
+    # obs_2 = oup_obs_cont(theta_cont).to(device)
+    # obs_cont = torch.cat([obs[:n_normal], obs_2[:n_corrupted]], dim=0).reshape(-1, N, 25)
+    obs_cont = torch.tensor(np.load(f"data/oup_obs_{int(degree * 10)}.npy"))
 
     theta, x = simulate_for_sbi(simulator, prior, num_simulations=num_simulations)
 
@@ -84,7 +85,7 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--degree", type=float, default=0)
+    parser.add_argument("--degree", type=float, default=0.2)
     parser.add_argument("--beta", type=float, default=1.0)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--distance", type=str, default="mmd")

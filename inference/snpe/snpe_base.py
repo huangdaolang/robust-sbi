@@ -382,8 +382,8 @@ class PosteriorEstimator(NeuralInference, ABC):
 
                     index_list = [int(i) for i in range(len(theta))]
                     random.shuffle(index_list)
-                    theta = theta[:200]
-                    x = x[:200]
+                    theta = theta[index_list[:200]]
+                    x = x[index_list[:200]]
                     _, embedding_context, _ = self._loss(
                         theta,
                         x,
