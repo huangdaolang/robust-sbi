@@ -87,8 +87,6 @@ class PosteriorEstimator(NeuralInference, ABC):
         self._proposal_roundwise = []
         self.use_non_atomic_loss = False
 
-        self.theta_gt = torch.tensor([4., 10.]).to(device)
-
     def append_simulations(
         self,
         theta: Tensor,
@@ -408,28 +406,6 @@ class PosteriorEstimator(NeuralInference, ABC):
                     t_loss = torch.mean(train_losses)
 
                     train_loss = t_loss + beta * summary_loss
-                elif distance == "obs_minimize":
-
-                    if self._round != 0:
-                        # theta_gt = torch.tensor([4., 10.])
-                        # x_o = ricker(theta_gt)
-                        # sigma = torch.tensor(np.random.uniform(5, 20))
-                        # x_o_cont = corruption.magnitude_sigma(x_o, var=sigma).reshape(-1, 100, 100)
-
-                        _, embedding_context_cont, _ = self._loss(
-                            self.theta_gt.reshape(-1, 2),
-                            x_obs,
-                            masks_batch,
-                            proposal,
-                            calibration_kernel,
-                            force_first_round_loss=True,
-                        )
-
-                        summary_loss = torch.nn.functional.pairwise_distance(embedding_context_cont.repeat(embedding_context.shape[0], 1), embedding_context, p=2)
-                        t_loss = torch.mean(train_losses)
-                        train_loss = t_loss + beta * torch.mean(summary_loss)
-                    else:
-                        train_loss = torch.mean(train_losses)
                 elif distance == "none":
                     train_loss = torch.mean(train_losses)
                 else:
