@@ -6,9 +6,6 @@
 
 *sbi-logs/
 
-data/*.npy
-
-data/*.mat
+data/*
 
 objects/*
-
