@@ -197,9 +197,7 @@ class PosteriorEstimator(NeuralInference, ABC):
         retrain_from_scratch: bool = False,
         show_train_summary: bool = False,
         dataloader_kwargs: Optional[dict] = None,
-        corrupt_data_training: str = "euclidean",
-        corruption_method : str = "magnitude",
-        corruption_degree: float = 0.2,
+        distance: str = "euclidean",
         beta: float = 1,
         x_obs: Tensor = None
     ) -> nn.Module:
@@ -234,7 +232,7 @@ class PosteriorEstimator(NeuralInference, ABC):
                 loss after the training.
             dataloader_kwargs: Additional or updated kwargs to be passed to the training
                 and validation dataloaders (like, e.g., a collate_fn)
-            corrupt_data_training: use which method to train corrupted method
+            distance: use which method to train corrupted method
 
         Returns:
             Density estimator that approximates the distribution $p(\theta|x)$.
@@ -335,9 +333,6 @@ class PosteriorEstimator(NeuralInference, ABC):
                     batch[1].to(self._device),
                     batch[2].to(self._device),
                 )
-                # print(x_batch[:, 0, :, :].shape)
-                # print(theta_batch.shape)
-                # print(masks_batch.shape)
 
                 train_losses, embedding_context, embedding_context_hidden = self._loss(
                     theta_batch,
@@ -348,26 +343,7 @@ class PosteriorEstimator(NeuralInference, ABC):
                     force_first_round_loss=force_first_round_loss,
                 )
 
-                if corrupt_data_training == "euclidean":
-                    if corruption_method == "sparsity":
-                        x_batch_cont = corruption.sparsity(x_batch)
-                    elif corruption_method == "magnitude":
-                        x_batch_cont = corruption.magnitude(x_batch, degree=corruption_degree)
-                    else:
-                        raise NotImplementedError
-
-                    _, embedding_context_cont, _ = self._loss(
-                        theta_batch,
-                        x_batch_cont,
-                        masks_batch,
-                        proposal,
-                        calibration_kernel,
-                        force_first_round_loss=force_first_round_loss,
-                    )
-
-                    summary_loss = torch.nn.functional.pairwise_distance(embedding_context_cont, embedding_context, p=2)
-                    train_loss = torch.mean(train_losses) + beta * torch.mean(summary_loss)
-                elif corrupt_data_training == "mmd":
+                if distance == "mmd":
                     theta, x, _ = self.get_simulations(starting_round=0)
                     theta_dim = theta[0].shape[0]
 
@@ -384,6 +360,7 @@ class PosteriorEstimator(NeuralInference, ABC):
                     random.shuffle(index_list)
                     theta = theta[index_list[:200]]
                     x = x[index_list[:200]]
+
                     _, embedding_context, _ = self._loss(
                         theta,
                         x,
@@ -394,40 +371,44 @@ class PosteriorEstimator(NeuralInference, ABC):
                     )
 
                     summary_loss = MMD_unweighted(embedding_context, embedding_context_cont, lengthscale=median_heuristic(embedding_context))
+
                     t_loss = torch.mean(train_losses)
-                    # print(summary_loss)
+
                     train_loss = t_loss + beta * summary_loss
-                elif corrupt_data_training == "direct_training":
-                    if corruption_method == "sparsity":
-                        x_batch_cont = corruption.sparsity(x_batch)
-                    elif corruption_method == "magnitude":
-                        x_batch_cont = corruption.magnitude(x_batch)
-                    else:
-                        raise NotImplementedError
-                    train_losses_cont, embedding_context_cont, embedding_context_cont_hidden = self._loss(
-                        theta_batch,
-                        x_batch_cont,
+
+                elif distance == "euclidean":
+                    theta, x, _ = self.get_simulations(starting_round=0)
+                    theta_dim = theta[0].shape[0]
+
+                    _, embedding_context_cont, embedding_context_cont_hidden = self._loss(
+                        theta[0].reshape(-1, theta_dim),
+                        x_obs,
                         masks_batch,
                         proposal,
                         calibration_kernel,
-                        force_first_round_loss=force_first_round_loss,
+                        force_first_round_loss=True,
                     )
-                    train_loss = torch.mean(train_losses) + torch.mean(train_losses_cont)
-                elif corrupt_data_training == "pre_generated_sigma":
-                    train_loss = torch.mean(train_losses)
-                    for i in range(5):
-                        train_losses_cont, embedding_context_cont, embedding_context_cont_hidden = self._loss(
-                            theta_batch,
-                            x_batch[:, i+1],
-                            masks_batch,
-                            proposal,
-                            calibration_kernel,
-                            force_first_round_loss=force_first_round_loss,
-                        )
-                        summary_loss = torch.nn.functional.pairwise_distance(embedding_context_cont, embedding_context,
-                                                                             p=2)
-                        train_loss += torch.mean(summary_loss)
-                elif corrupt_data_training == "obs_minimize":
+
+                    index_list = [int(i) for i in range(len(theta))]
+                    random.shuffle(index_list)
+                    theta = theta[index_list[:200]]
+                    x = x[index_list[:200]]
+
+                    _, embedding_context, _ = self._loss(
+                        theta,
+                        x,
+                        masks_batch,
+                        proposal,
+                        calibration_kernel,
+                        force_first_round_loss=True,
+                    )
+
+                    summary_loss = torch.mean(torch.cdist(embedding_context_cont, embedding_context, p=2.0))
+
+                    t_loss = torch.mean(train_losses)
+
+                    train_loss = t_loss + beta * summary_loss
+                elif distance == "obs_minimize":
 
                     if self._round != 0:
                         # theta_gt = torch.tensor([4., 10.])
@@ -449,19 +430,22 @@ class PosteriorEstimator(NeuralInference, ABC):
                         train_loss = t_loss + beta * torch.mean(summary_loss)
                     else:
                         train_loss = torch.mean(train_losses)
-                elif corrupt_data_training == "none":
+                elif distance == "none":
                     train_loss = torch.mean(train_losses)
                 else:
                     raise NotImplementedError
                 train_log_probs_sum -= train_losses.sum().item()
-
+                start_time = time.time()
                 train_loss.backward()
+                end_time = time.time()
+                # print(f"mmd calculation time: {end_time - start_time}")
                 if clip_max_norm is not None:
                     clip_grad_norm_(
                         self._neural_net.parameters(), max_norm=clip_max_norm
                     )
                 self.optimizer.step()
-
+            # epoch_end_time = time.time()
+            # print(f"Time to train one epoch: {epoch_end_time-epoch_start_time}")
             self.epoch += 1
 
             train_log_prob_average = train_log_probs_sum / (

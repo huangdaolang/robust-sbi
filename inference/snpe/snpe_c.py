@@ -100,9 +100,7 @@ class SNPE_C(PosteriorEstimator):
         retrain_from_scratch: bool = False,
         show_train_summary: bool = False,
         dataloader_kwargs: Optional[Dict] = None,
-        corrupt_data_training: str = "euclidean",
-        corruption_method: str = "magnitude",
-        corruption_degree: float = 0.2,
+        distance: str = "euclidean",
         beta: float = 1,
         x_obs: Tensor = None
     ) -> nn.Module:
