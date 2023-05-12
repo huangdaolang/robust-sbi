@@ -9,6 +9,8 @@ class ricker():
     def __call__(self, theta, *args, **kwargs):
         logr = theta[0]
         phi = theta[1]
+        if phi < 0:
+            phi = 0.001
         sigma = 0.3
 
         N0 = 1
@@ -26,5 +28,4 @@ class ricker():
             for t in range(1, T + 1):
                 Nt[t] = torch.exp(logr + torch.log(Nt[t - 1]) - Nt[t - 1] + sigma * et[t - 1])
                 Y[i, t - 1] = torch.poisson(phi * Nt[t])
-
         return Y
