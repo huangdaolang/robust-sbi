@@ -22,7 +22,7 @@ class turin():
             lambda_0 = theta[0, 2].to(device)
             sigma2_N = theta[0, 3].to(device)
 
-        sigma2_N = sigma2_N
+        sigma2_N = sigma2_N if sigma2_N > 0 else torch.tensor(1e-10)
 
         nRx = self.N
 
@@ -32,7 +32,8 @@ class turin():
         tau = torch.linspace(0, t_max, self.Ns)
 
         H = torch.zeros((nRx, self.Ns), dtype=torch.cfloat)
-
+        if lambda_0 < 0:
+            lambda_0 = torch.tensor(1e7)
         mu_poisson = lambda_0 * t_max  # Mean of Poisson process
 
         for jR in range(nRx):
@@ -52,8 +53,8 @@ class turin():
                 if delays[l] < self.tau0:
                     alpha[l] = 0
                 else:
-                    alpha[l] = torch.normal(0, torch.sqrt(sigma2[l] / 2)) + torch.normal(0,
-                                                                                         torch.sqrt(sigma2[l] / 2)) * 1j
+                    std = torch.sqrt(sigma2[l] / 2) if torch.sqrt(sigma2[l] / 2) > 0 else torch.tensor(1e-7)
+                    alpha[l] = torch.normal(0, std) + torch.normal(0, std) * 1j
 
             H[jR, :] = torch.matmul(torch.exp(-1j * 2 * torch.pi * delta_f * (torch.ger(torch.arange(self.Ns), delays))), alpha)
 
