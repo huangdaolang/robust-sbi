@@ -84,10 +84,10 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--beta", type=float, default=1, help="regularization weight")
+    parser.add_argument("--beta", type=float, default=1.0, help="regularization weight")
     parser.add_argument("--degree", type=float, default=0.2, help="degree of mis-specification")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--distance", type=str, default="euclidean", choices=["euclidean", "none", "mmd"])
+    parser.add_argument("--distance", type=str, default="mmd", choices=["euclidean", "none", "mmd"])
     parser.add_argument("--num_simulations", type=int, default=1000, help="number of simulations")
     parser.add_argument("--theta", type=list, default=[0.5, 1.0], help="ground truth theta")
     parser.add_argument("--N", type=int, default=100, help="Number of realizations for each set of theta")

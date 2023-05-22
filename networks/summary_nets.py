@@ -13,8 +13,8 @@ class RickerSummary(nn.Module):
         self.lstm = nn.LSTM(input_size, hidden_dim, 1, batch_first=True)
 
         self.conv = nn.Sequential(nn.Conv1d(self.input_size, self.hidden_dim, 3, 3),
-                                  nn.Conv1d(4, self.hidden_dim, 3, 3),
-                                  nn.Conv1d(4, self.hidden_dim, 3, 3),
+                                  nn.Conv1d(self.hidden_dim, self.hidden_dim, 3, 3),
+                                  nn.Conv1d(self.hidden_dim, self.hidden_dim, 3, 3),
                                   nn.AvgPool1d(3))
 
     def forward(self, Y):

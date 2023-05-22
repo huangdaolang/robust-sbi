@@ -76,10 +76,10 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--beta", type=float, default=1.0)
+    parser.add_argument("--beta", type=float, default=1.0, help="regularization weight")
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--distance", type=str, default="none")
-    parser.add_argument("--num_simulations", type=int, default=2000)
+    parser.add_argument("--distance", type=str, default="mmd", choices=["euclidean", "none", "mmd"])
+    parser.add_argument("--num_simulations", type=int, default=2000, help="number of simulations")
     parser.add_argument("--theta", type=list, default=[10**(-8.4), 7.8e-9, 1e9, 2.8e-10])
     parser.add_argument("--N", type=int, default=100)
     parser.add_argument("--pre-generated-sim", type=bool, default=True, help="generate simulation data online or not")

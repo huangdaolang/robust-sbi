@@ -314,7 +314,7 @@ class PosteriorEstimator(NeuralInference, ABC):
                 list(self._neural_net.parameters()), lr=learning_rate
             )
             self.epoch, self._val_log_prob = 0, float("-Inf")
-
+        time_list = []
         while self.epoch <= max_num_epochs and not self._converged(
             self.epoch, stop_after_epochs
         ):
@@ -323,6 +323,7 @@ class PosteriorEstimator(NeuralInference, ABC):
             self._neural_net.train()
             train_log_probs_sum = 0
             epoch_start_time = time.time()
+
             for batch in train_loader:
                 self.optimizer.zero_grad()
                 # Get batches on current device.
@@ -411,10 +412,8 @@ class PosteriorEstimator(NeuralInference, ABC):
                 else:
                     raise NotImplementedError
                 train_log_probs_sum -= train_losses.sum().item()
-                start_time = time.time()
                 train_loss.backward()
-                end_time = time.time()
-                # print(f"mmd calculation time: {end_time - start_time}")
+
                 if clip_max_norm is not None:
                     clip_grad_norm_(
                         self._neural_net.parameters(), max_norm=clip_max_norm
