@@ -67,3 +67,5 @@ from utils.user_input_checks import (
     validate_theta_and_x,
 )
 from utils.user_input_checks_utils import MultipleIndependent
+
+from utils.plot_config import update_plot_style, get_color_map
