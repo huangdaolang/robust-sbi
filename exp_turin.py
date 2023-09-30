@@ -82,6 +82,6 @@ if __name__ == "__main__":
     parser.add_argument("--num_simulations", type=int, default=2000, help="number of simulations")
     parser.add_argument("--theta", type=list, default=[10**(-8.4), 7.8e-9, 1e9, 2.8e-10])
     parser.add_argument("--N", type=int, default=100)
-    parser.add_argument("--pre-generated-sim", type=bool, default=True, help="generate simulation data online or not")
+    parser.add_argument("--pre-generated-sim", action="store_true", help="generate simulation data online or not")
     args = parser.parse_args()
     main(args)
