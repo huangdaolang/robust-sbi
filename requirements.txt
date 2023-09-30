@@ -1,0 +1,12 @@
+arviz==0.12.1
+joblib==1.2.0
+matplotlib==3.5.1
+numpy==1.21.5
+pyknos==0.15.0
+pyro_ppl==1.6.0
+sbi==0.19.2
+scikit_learn==1.1.1
+scipy==1.7.3
+torch==1.12.1
+tqdm==4.64.0
+UMNN==1.68
