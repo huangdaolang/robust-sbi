@@ -4,7 +4,7 @@ import matplotlib
 
 def update_plot_style():
     matplotlib.rcParams.update({
-        'font.family': 'times',
+        'font.family': 'serif',
         'font.size': 16.0,
         'lines.linewidth': 2,
         'lines.antialiased': True,
