@@ -177,7 +177,7 @@ class DirectPosterior(NeuralPosterior):
 
             masked_log_prob = torch.where(
                 in_prior_support,
-                unnorm_log_prob,
+                unnorm_log_prob[0],  # before unnorm_log_prob
                 torch.tensor(float("-inf"), dtype=torch.float32, device=self._device),
             )
 
