@@ -7,8 +7,12 @@ class ricker():
         self.N = N
 
     def __call__(self, theta, *args, **kwargs):
-        logr = theta[0]
-        phi = theta[1]
+        if len(theta.shape) == 1:
+            logr = theta[0]
+            phi = theta[1]
+        else:
+            logr = theta[0, 0]
+            phi = theta[0, 1]
         if phi < 0:
             phi = 0.001
         sigma = 0.3
@@ -29,3 +33,6 @@ class ricker():
                 Nt[t] = torch.exp(logr + torch.log(Nt[t - 1]) - Nt[t - 1] + sigma * et[t - 1])
                 Y[i, t - 1] = torch.poisson(phi * Nt[t])
         return Y
+
+    def get_name(self):
+        return "ricker"

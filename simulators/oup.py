@@ -28,3 +28,6 @@ class oup():
                 mu, sigma = theta1*(theta2 - Y[i, t])*dt, 0.5*(dt**0.5)*w[t]
                 Y[i, t+1] = Y[i, t] + mu + sigma
         return Y
+
+    def get_name(self):
+        return "oup"

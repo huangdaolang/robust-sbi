@@ -80,6 +80,9 @@ class turin():
 
         return 10 * torch.log10(p)
 
+    def get_name(self):
+        return "turin"
+
 
 # Numpy implementation
 def TurinModel(G0, T, lambda_0, sigma2_N, B=4e9, Ns=801, N=100, tau0=0):
