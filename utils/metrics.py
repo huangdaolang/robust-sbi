@@ -9,7 +9,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import KFold, cross_val_score
 from sklearn.neural_network import MLPClassifier
 from torch import Tensor
-
+from scipy.stats import gaussian_kde
+from scipy.spatial import cKDTree as KDTree
 
 def c2st(
     X: Tensor,
@@ -304,7 +305,7 @@ def MMD_unweighted(x, y, lengthscale):
     kxy = K[0:m, m:(m + n)]
 
     return (1 / m ** 2) * torch.sum(kxx) - (2 / (m * n)) * torch.sum(kxy) + (1 / n ** 2) * torch.sum(kyy)
-    # return (1 / m ** 2) * torch.sum(kxx) - (2 / (m * n)) * torch.sum(kxy)
+
 
 def median_heuristic(y):
     a = torch.cdist(y, y)**2
@@ -317,6 +318,68 @@ def kernel_matrix(x, y, l):
     kernel = torch.exp(-(1 / (2 * l ** 2)) * d)
 
     return kernel
+
+
+def RMSE(gt, samples, p=1):
+    if p == 1:
+        dist = torch.mean(torch.abs(gt-samples))
+    elif p == 2:
+        dist = torch.sqrt(torch.mean((gt-samples)**2))
+    elif p == 3:
+        dist = torch.nn.functional.pairwise_distance(gt, samples, p=2).mean()
+    else:
+        raise NotImplementedError
+    return dist
+
+
+def KLdivergence(x, y):
+    """Compute the Kullback-Leibler divergence between two multivariate samples.
+
+    Parameters
+    ----------
+    x : 2D array (n,d)
+    Samples from distribution P, which typically represents the true
+    distribution.
+    y : 2D array (m,d)
+    Samples from distribution Q, which typically represents the approximate
+    distribution.
+
+    Returns
+    -------
+    out : float
+    The estimated Kullback-Leibler divergence D(P||Q).
+
+    References
+    ----------
+    Pérez-Cruz, F. Kullback-Leibler divergence estimation of
+    continuous distributions IEEE International Symposium on Information
+    Theory, 2008.
+    """
+
+    # Check the dimensions are consistent
+    x = np.atleast_2d(x)
+    y = np.atleast_2d(y)
+
+    n,d = x.shape
+    m,dy = y.shape
+
+    assert(d == dy)
+
+
+    # Build a KD tree representation of the samples and find the nearest neighbour
+    # of each point in x.
+    xtree = KDTree(x)
+    ytree = KDTree(y)
+
+    # Get the first two nearest neighbours for x, since the closest one is the
+    # sample itself.
+    r = xtree.query(x, k=2, eps=.01, p=2)[0][:,1]
+    s = ytree.query(x, k=1, eps=.01, p=2)[0]
+
+    # There is a mistake in the paper. In Eq. 14, the right side misses a negative sign
+    # on the first term of the right hand side.
+    return -np.log(r/s).sum() * d / n + np.log(m / (n - 1.))
+
 
 def main():
     _test()
