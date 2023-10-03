@@ -7,5 +7,6 @@
 *sbi-logs/
 
 data/*
+!data/turin_obs.npy
 
 objects/*
