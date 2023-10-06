@@ -21,7 +21,43 @@ class RickerSummary(nn.Module):
         embeddings_conv = self.conv(Y.reshape(-1, 1, 100)).reshape(-1, 100, 4)
 
         stat_conv = torch.mean(embeddings_conv, dim=1)
+
         return embeddings_conv, stat_conv
+
+
+class GLRSummary(nn.Module):
+    def __init__(self, input_dim, hidden_dim):
+        super(GLRSummary, self).__init__()
+
+        # Defining some parameters
+        self.hidden_dim = hidden_dim
+        self.input_dim = input_dim
+
+        self.phi = nn.Sequential(
+            nn.Linear(self.input_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim),
+            nn.ReLU(),
+        )
+
+        self.rho = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, 20)
+        )
+
+    def forward(self, Y):
+        Y = Y.reshape(-1, 1, 10)
+        embeddings = self.phi(Y).reshape(-1, 100, self.hidden_dim)
+
+        # Sum (or mean) over the transformed inputs to get a permutation-invariant representation
+        # We sum over dimension 1 since that's the dimension of the individual samples
+        x_aggregated = embeddings.sum(dim=1)
+
+        # Apply Rho network to produce final output
+        stat = self.rho(x_aggregated)
+
+        return None, stat
 
 
 class LotkaSummary(nn.Module):
@@ -111,14 +147,6 @@ class TurinSummary(nn.Module):
         embeddings_conv = self.conv(Y.reshape(-1, 1, 801)).reshape(-1, self.N, 8)
 
         stat_conv = torch.mean(embeddings_conv, dim=1)
-
-        # hidden, c = self.init_hidden(self.N * batch_size, current_device)
-        # out, (embeddings_lstm, c) = self.lstm(Y.reshape(self.N * batch_size, 801, 1), (hidden, c))
-        #
-        # embeddings_lstm = embeddings_lstm.reshape(batch_size, self.N, self.hidden_dim)
-        #
-        # stat_lstm = torch.mean(embeddings_lstm, dim=1)
-        # stat = torch.cat([stat_conv, stat_lstm], dim=1)
 
         return embeddings_conv, stat_conv
 
